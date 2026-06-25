@@ -9,6 +9,14 @@ export const envSchema = z
       .transform((v) => Number(v)),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     REDIS: z.string().min(1, 'REDIS is required'),
+
+    SESSION_SECRET: z.string().min(1, 'SESSION_SECRET is required'),
+
+    POSTGRES_USER: z.string().min(1, 'POSTGRES_USER is required'),
+    POSTGRES_PASS: z.string().min(1, 'POSTGRES_PASS is required'),
+    POSTGRES_DB: z.string().min(1, 'POSTGRES_DB is required'),
+
+    ABC: z.string().min(1, 'This is a test'),
   })
   .loose();
 
