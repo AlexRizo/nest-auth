@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { treeifyError, z } from 'zod';
 
-export const envSchema = z
+const envSchema = z
   .object({
     PORT: z
       .string()
@@ -16,7 +16,7 @@ export const envSchema = z
     POSTGRES_PASS: z.string().min(1, 'POSTGRES_PASS is required'),
     POSTGRES_DB: z.string().min(1, 'POSTGRES_DB is required'),
 
-    ABC: z.string().min(1, 'This is a test'),
+    ALLOWED_ORIGINS: z.string().min(1, 'ALLOWED_ORIGINS is required'),
   })
   .loose();
 
