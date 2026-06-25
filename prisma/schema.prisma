@@ -7,39 +7,59 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  displayName  String?
-  avatarUrl    String?
-  passwordHash String?  // null para usuarios que solo usan OAuth
+  id       String  @id @default(uuid())
+  email    String  @unique
+  name     String?
+  avatar   String?
+  password String? // null para usuarios que solo usan OAuth
 
   // 2FA (TOTP via otplib)
   twoFactorSecret  String?
   twoFactorEnabled Boolean @default(false)
 
   // Estado de la cuenta
-  emailVerified Boolean  @default(false)
-  isActive      Boolean  @default(true)
+  emailVerified Boolean        @default(false)
+  status        UserStatusEnum @default(ACTIVE)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
 
-  oauthAccounts OAuthAccount[]
+  authProvider AuthProviderEnum @default(LOCAL)
+
+  sessions Session[]
 }
 
-model OAuthAccount {
-  id           String  @id @default(cuid())
-  provider     String  // 'google', 'github', etc.
-  providerId   String  // ID del usuario en el proveedor
-  accessToken  String?
-  refreshToken String?
+enum AuthProviderEnum {
+  LOCAL
+  GOOGLE
+}
+
+enum UserStatusEnum {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model Session {
+  id String @id @default(uuid())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshToken String
+
+  userAgent String?
+  ipAddress String?
+  location  String?
+
+  isActive Boolean @default(true)
+
+  expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([provider, providerId])
+  @@index([userId, ipAddress, userAgent])
 }
