@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres_auth
+    env_file:
+      - .env
+    ports:
+      - '5431:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_auth
+    restart: always
+    ports: [ '6380:6379' ]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres:
+  redis_data:

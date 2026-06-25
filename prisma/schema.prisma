@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  displayName  String?
+  avatarUrl    String?
+  passwordHash String?  // null para usuarios que solo usan OAuth
+
+  // 2FA (TOTP via otplib)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  // Estado de la cuenta
+  emailVerified Boolean  @default(false)
+  isActive      Boolean  @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  oauthAccounts OAuthAccount[]
+}
+
+model OAuthAccount {
+  id           String  @id @default(cuid())
+  provider     String  // 'google', 'github', etc.
+  providerId   String  // ID del usuario en el proveedor
+  accessToken  String?
+  refreshToken String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+}
