@@ -5,7 +5,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { envs } from './config/env';
 import { PrismaModule } from './modules/prisma/prisma.module';
-import { UsersModule } from './modules/users.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
