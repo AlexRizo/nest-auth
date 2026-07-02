@@ -4,6 +4,7 @@ import KeyvRedis from '@keyv/redis';
 import { envs } from './config/env';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     PrismaModule,
     UsersModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
