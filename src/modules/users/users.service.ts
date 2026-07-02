@@ -9,6 +9,7 @@ import { isEmail, isUUID } from 'class-validator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { hash } from 'src/common/helpers/bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -16,7 +17,7 @@ export class UsersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create({ email, username, ...rest }: CreateUserDto) {
+  async create({ email, username, password, ...rest }: CreateUserDto) {
     const emailExists = await this.findOneOrNull(email);
 
     if (emailExists) throw new ConflictException(`El email ya existe`);
@@ -26,10 +27,17 @@ export class UsersService {
     if (uName) throw new ConflictException(`El nombre de usuario ya existe`);
 
     try {
+      let hashedPass: string | undefined;
+
+      if (password) {
+        hashedPass = hash(password);
+      }
+
       return await this.prisma.user.create({
         data: {
           email,
           username,
+          password: hashedPass,
           ...rest,
         },
       });
@@ -64,27 +72,41 @@ export class UsersService {
     return await this.prisma.user.findUnique({ where });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(
+    id: string,
+    { email, username, password, ...rest }: UpdateUserDto,
+  ) {
     await this.findOne(id);
 
-    if (updateUserDto.email) {
-      const emailExists = await this.findOneOrNull(updateUserDto.email);
+    if (email) {
+      const emailExists = await this.findOneOrNull(email);
 
       if (emailExists && emailExists.id !== id)
         throw new ConflictException(`El email ya existe`);
     }
 
-    if (updateUserDto.username) {
-      const uName = await this.findOneOrNull(updateUserDto.username);
+    if (username) {
+      const uName = await this.findOneOrNull(username);
 
       if (uName && uName.id !== id)
         throw new ConflictException(`El nombre de usuario ya existe`);
     }
 
     try {
+      let hashedPass: string | undefined;
+
+      if (password) {
+        hashedPass = hash(password);
+      }
+
       const userToUpdate = await this.prisma.user.update({
         where: { id },
-        data: updateUserDto,
+        data: {
+          email,
+          username,
+          password: hashedPass,
+          ...rest,
+        },
       });
 
       return userToUpdate;
