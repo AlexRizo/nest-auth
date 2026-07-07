@@ -8,9 +8,15 @@ const envSchema = z
       .min(1, 'PORT is required')
       .transform((v) => Number(v)),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+
     REDIS: z.string().min(1, 'REDIS is required'),
+    REFRESH_TTL_DAYS: z
+      .string()
+      .min(1, 'REFRESH_TTL_DAYS is required')
+      .transform(Number),
 
     SESSION_SECRET: z.string().min(1, 'SESSION_SECRET is required'),
+    JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
 
     POSTGRES_USER: z.string().min(1, 'POSTGRES_USER is required'),
     POSTGRES_PASS: z.string().min(1, 'POSTGRES_PASS is required'),
