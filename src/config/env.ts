@@ -10,6 +10,7 @@ const envSchema = z
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
     REDIS: z.string().min(1, 'REDIS is required'),
+    REDIS_CLIENT: z.string().min(1, 'REDIS_CLIENT is required'),
     REFRESH_TTL_DAYS: z
       .string()
       .min(1, 'REFRESH_TTL_DAYS is required')
