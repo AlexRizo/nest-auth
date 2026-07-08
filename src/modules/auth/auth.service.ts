@@ -77,7 +77,7 @@ export class AuthService {
         this.pre2faTtlSec * 1000,
       );
 
-      return { twoFactorEnabled: true as const };
+      return { twoFactorRequired: true as const };
     }
 
     return this.establishSession(user, req, res);

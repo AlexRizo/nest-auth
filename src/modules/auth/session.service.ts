@@ -17,6 +17,13 @@ export class SessionService {
     return randomBytes(48).toString('base64url');
   }
 
+  async findFirst(sessionId: string, userId: string) {
+    return this.prisma.session.findFirst({
+      where: { id: sessionId, userId: userId },
+      select: { id: true },
+    });
+  }
+
   async create(userId: string, meta: SessionMeta) {
     const secret = this.newSecret();
 
