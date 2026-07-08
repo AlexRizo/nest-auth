@@ -35,7 +35,7 @@ export class SessionService {
 
   async rotate(cookieValue: string) {
     const parsed = this.parse(cookieValue);
-    if (!parsed) throw new UnauthorizedException('Token de refresco inválido');
+    if (!parsed) throw new UnauthorizedException('Refresh token inválido');
 
     const { sessionId, secret } = parsed;
 
@@ -48,8 +48,13 @@ export class SessionService {
     }
 
     if (!compareHash(secret, session.refreshToken)) {
+      await this.prisma.session.update({
+        where: { id: sessionId },
+        data: { isActive: false },
+      });
+
       throw new UnauthorizedException(
-        'Token de refresco reutilizado; sesión revocada',
+        'Refresh token reutilizado; sesión revocada',
       );
     }
 
@@ -63,6 +68,48 @@ export class SessionService {
     });
 
     return { cookieValue: `${session.id}.${newSecret}`, session: updated };
+  }
+
+  async isActive(sessionId: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { isActive: true, expiresAt: true },
+    });
+
+    return !!session && session.isActive && session.expiresAt > new Date();
+  }
+
+  async revoke(sessionId: string) {
+    await this.prisma.session.updateMany({
+      where: { id: sessionId },
+      data: { isActive: false },
+    });
+  }
+
+  async revokeAllForUser(userId: string, exceptSessionId?: string) {
+    await this.prisma.session.updateMany({
+      where: {
+        userId,
+        ...(exceptSessionId && { id: { not: exceptSessionId } }),
+      },
+      data: {
+        isActive: false,
+      },
+    });
+  }
+
+  async listForUser(userId: string) {
+    return this.prisma.session.findMany({
+      where: { userId, isActive: true, expiresAt: { gt: new Date() } },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        location: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   private parse(cookieValue: string) {
