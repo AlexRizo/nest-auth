@@ -15,6 +15,10 @@ const envSchema = z
       .string()
       .min(1, 'REFRESH_TTL_DAYS is required')
       .transform(Number),
+    ACCESS_TTL_SEC: z
+      .string()
+      .min(1, 'ACCESS_TTL_SEC is required')
+      .transform(Number),
 
     SESSION_SECRET: z.string().min(1, 'SESSION_SECRET is required'),
     JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),

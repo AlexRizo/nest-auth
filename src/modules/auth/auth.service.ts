@@ -1,42 +1,29 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { SessionService } from './session.service';
 import type Redis from 'ioredis';
 import { envs } from 'src/config/env';
+import { RegisterUserDto } from './dto/register-user.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
-  private readonly isProd: boolean;
-  private readonly accessTtlSec: number;
+  private readonly isProd = envs.NODE_ENV === 'production';
+  private readonly accessTtlSec = envs.ACCESS_TTL_SEC;
   private readonly pre2faTtlSec = 5 * 60;
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
     private readonly jwt: JwtService,
     private readonly sessions: SessionService,
     @Inject(envs.REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
+  async register(dto: RegisterUserDto) {
+    const user = await this.usersService.create(dto);
 
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return user;
   }
 }
