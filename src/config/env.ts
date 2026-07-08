@@ -28,6 +28,9 @@ const envSchema = z
     POSTGRES_DB: z.string().min(1, 'POSTGRES_DB is required'),
 
     ALLOWED_ORIGINS: z.string().min(1, 'ALLOWED_ORIGINS is required'),
+
+    GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
+    GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
   })
   .loose();
 
