@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
   Matches,
@@ -40,4 +41,8 @@ export class CreateUserDto {
     message: 'El nombre debe tener 100 caracteres como máximo',
   })
   name: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }
