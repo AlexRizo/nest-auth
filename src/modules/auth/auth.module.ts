@@ -9,9 +9,12 @@ import { envs } from 'src/config/env';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { PrismaModule } from '../prisma/prisma.module';
+import { TwoFactorService } from './two-factor.service';
 
 @Module({
   imports: [
+    PrismaModule,
     UsersModule,
     PassportModule,
     JwtModule.registerAsync({
@@ -24,6 +27,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
   providers: [
     AuthService,
     SessionService,
+    TwoFactorService,
     LocalStrategy,
     JwtStrategy,
     GoogleStrategy,
