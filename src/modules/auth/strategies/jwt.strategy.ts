@@ -38,7 +38,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, username: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        status: true,
+        role: true,
+      },
     });
 
     if (!user) {
@@ -58,6 +64,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
       sessionId: payload.sid,
       jti: payload.jti,
       pre2fa,

@@ -2,6 +2,7 @@ import { WorkspacesService } from './workspaces.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('workspaces')
 export class WorkspacesController {
@@ -17,7 +18,8 @@ export class WorkspacesController {
     return this.workspacesService.findAll();
   }
 
-  @Post('create')
+  @Roles('ADMIN')
+  @Post()
   create(@Body() createWorkspaceDto: CreateWorkspaceDto) {
     return this.workspacesService.create(createWorkspaceDto);
   }
