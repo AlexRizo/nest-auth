@@ -6,6 +6,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './modules/redis/redis.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RedisModule } from './modules/redis/redis.module';
     UsersModule,
     AuthModule,
     RedisModule,
+    WorkspacesModule,
   ],
 })
 export class AppModule {}

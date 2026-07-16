@@ -1,0 +1,32 @@
+import { WorkspacesService } from './workspaces.service';
+import { CreateWorkspaceDto } from './dto/create-workspace.dto';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+
+@Controller('workspaces')
+export class WorkspacesController {
+  constructor(private readonly workspacesService: WorkspacesService) {}
+
+  @Get(':term')
+  findOne(@Param('term') term: string) {
+    return this.workspacesService.findOne(term);
+  }
+
+  @Get()
+  findAll() {
+    return this.workspacesService.findAll();
+  }
+
+  @Post('create')
+  create(@Body() createWorkspaceDto: CreateWorkspaceDto) {
+    return this.workspacesService.create(createWorkspaceDto);
+  }
+
+  @Patch(':workspaceId')
+  update(
+    @Param('workspaceId') workspaceId: string,
+    @Body() workspaceDto: UpdateWorkspaceDto,
+  ) {
+    return this.workspacesService.update(workspaceId, workspaceDto);
+  }
+}
