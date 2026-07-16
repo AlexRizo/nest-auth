@@ -48,7 +48,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  login(@Req() req: Request, @Res() res: Response) {
+  login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return this.authService.login(req.user as User, req, res);
   }
 
@@ -59,7 +59,7 @@ export class AuthController {
   async twoFactorLogin(
     @CurrentUser() partial: AuthenticatedUser,
     @Req() req: Request,
-    @Res() res: Response,
+    @Res({ passthrough: true }) res: Response,
     @Body() dto: TwoFactorCodeDto,
   ) {
     const valid = await this.twoFactorService.verify(partial.id, dto.code);
