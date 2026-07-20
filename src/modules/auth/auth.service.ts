@@ -105,7 +105,7 @@ export class AuthService {
       AUTH_COOKIES.REFRESH_TOKEN,
       cookieValue,
       session.expiresAt.getTime() - Date.now(),
-      '/api/v1/auth/refresh',
+      AUTH_COOKIES.REFRESH_TOKEN_PATH,
     );
 
     await this.prisma.user.update({
@@ -231,7 +231,7 @@ export class AuthService {
       AUTH_COOKIES.REFRESH_TOKEN,
       rotated,
       session.expiresAt.getTime() - Date.now(),
-      '/api/v1/auth/refresh',
+      AUTH_COOKIES.REFRESH_TOKEN_PATH,
     );
 
     return { user: this.toPublicUser(user) };
@@ -266,7 +266,7 @@ export class AuthService {
     });
     res.clearCookie(AUTH_COOKIES.REFRESH_TOKEN, {
       ...base,
-      path: '/api/v1/auth/refresh',
+      path: AUTH_COOKIES.REFRESH_TOKEN_PATH,
     });
   }
 
