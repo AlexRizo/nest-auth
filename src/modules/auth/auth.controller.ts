@@ -26,6 +26,7 @@ import { SessionService } from './session.service';
 import { TwoFactorService } from './two-factor.service';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { Throttle } from '@nestjs/throttler';
 import { envs } from 'src/config/env';
 
 @Controller('auth')
@@ -38,6 +39,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 registros/min por IP: frena creación masiva de cuentas
   @Post('register')
   async register(@Body() dto: RegisterUserDto) {
     const user = await this.authService.register(dto);
@@ -45,6 +47,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 intentos/min por IP: frena fuerza bruta de contraseñas
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -53,6 +56,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 intentos/min: el código es de 6 dígitos, sin esto es brute-forceable
   @UseGuards(TwoFactorPendingGuard)
   @HttpCode(HttpStatus.OK)
   @Post('2fa/login')
@@ -111,6 +115,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10/min: uso legítimo es esporádico (al expirar el access token)
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {

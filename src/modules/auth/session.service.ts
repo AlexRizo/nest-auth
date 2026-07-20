@@ -1,16 +1,51 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { envs } from 'src/config/env';
 import { randomBytes } from 'crypto';
 import { SessionMeta } from './interfaces/session.interface';
 import { compareHash, hash } from 'src/common/helpers/bcrypt';
 
+/** Días que se conserva una sesión cerrada (isActive=false) antes de borrarla. */
+const INACTIVE_RETENTION_DAYS = 30;
+
 @Injectable()
 export class SessionService {
+  private readonly logger = new Logger(SessionService.name);
   private readonly refreshTtlMs: number;
 
   constructor(private readonly prisma: PrismaService) {
     this.refreshTtlMs = envs.REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  /**
+   * Limpieza diaria de sesiones que ya no aportan: las cerradas hace más de
+   * INACTIVE_RETENTION_DAYS (conservamos una ventana de auditoría) y las
+   * expiradas. El soft-delete (isActive=false) se mantiene para la revocación;
+   * este cron solo purga lo que ya venció.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupExpired() {
+    const inactiveThreshold = new Date(
+      Date.now() - INACTIVE_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    const { count } = await this.prisma.session.deleteMany({
+      where: {
+        OR: [
+          // Cerradas hace tiempo (soft-delete ya auditado).
+          { isActive: false, updatedAt: { lt: inactiveThreshold } },
+          // Expiradas.
+          { expiresAt: { lt: new Date() } },
+        ],
+      },
+    });
+
+    if (count > 0) {
+      this.logger.log(`Limpieza de sesiones: ${count} eliminadas`);
+    }
+
+    return count;
   }
 
   private newSecret() {
