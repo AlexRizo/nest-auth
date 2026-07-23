@@ -9,12 +9,27 @@ import { PrismaService } from '../prisma/prisma.service';
 import { nanoid } from 'nanoid';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { isUUID } from 'class-validator';
+import { UsersService } from '../users/users.service';
+import { UserRoleEnum } from '@prisma/client';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usersSerivce: UsersService,
+  ) {}
 
   private readonly logger = new Logger(WorkspacesService.name);
+
+  async findMyWorkspaces(userId: string) {
+    const user = await this.usersSerivce.findOne(userId);
+
+    if (user.role === UserRoleEnum.ADMIN) {
+      return this.prisma.workspace.findMany();
+    }
+
+    
+  }
 
   async findOne(term: string) {
     const where = isUUID(term) ? { id: term } : { code: term };

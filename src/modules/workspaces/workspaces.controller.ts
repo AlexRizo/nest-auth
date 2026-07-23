@@ -3,11 +3,18 @@ import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { type AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 
 @Controller('workspaces')
 export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
+  @Get('/me')
+  findMyWorkspaces(@CurrentUser() user: AuthenticatedUser) {
+    return this.workspacesService.findMyWorkspaces(user.id);
+  }
+  
   @Get(':term')
   findOne(@Param('term') term: string) {
     return this.workspacesService.findOne(term);

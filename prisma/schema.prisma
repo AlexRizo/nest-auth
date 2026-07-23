@@ -88,6 +88,8 @@ model Workspace {
   code  String @unique
   color String
 
+  createdAt DateTime @default(now())
+
   workspaceGrants AccessGrant[]
   spaces          Space[]
 }
@@ -100,6 +102,8 @@ model Space {
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   spaceGrants AccessGrant[]
 }
