@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { isUUID } from 'class-validator';
 import { UsersService } from '../users/users.service';
-import { UserRoleEnum } from '@prisma/client';
+import { AccessScopeEnum, UserRoleEnum } from '@prisma/client';
 
 @Injectable()
 export class WorkspacesService {
@@ -28,7 +28,17 @@ export class WorkspacesService {
       return this.prisma.workspace.findMany();
     }
 
-    
+    const grants = await this.prisma.accessGrant.findMany({
+      where: {
+        userId,
+        scope: AccessScopeEnum.WORKSPACE,
+      },
+      include: {
+        workspace: true,
+      },
+    });
+
+    return grants.map((g) => g.workspace);
   }
 
   async findOne(term: string) {

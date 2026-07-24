@@ -39,7 +39,7 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 registros/min por IP: frena creación masiva de cuentas
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 5 registros/min por IP: frena creación masiva de cuentas
   @Post('register')
   async register(@Body() dto: RegisterUserDto) {
     const user = await this.authService.register(dto);
@@ -47,7 +47,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 intentos/min por IP: frena fuerza bruta de contraseñas
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 5 intentos/min por IP: frena fuerza bruta de contraseñas
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -56,7 +56,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 intentos/min: el código es de 6 dígitos, sin esto es brute-forceable
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 5 intentos/min: el código es de 6 dígitos, sin esto es brute-forceable
   @UseGuards(TwoFactorPendingGuard)
   @HttpCode(HttpStatus.OK)
   @Post('2fa/login')

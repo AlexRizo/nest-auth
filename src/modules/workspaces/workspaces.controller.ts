@@ -14,7 +14,7 @@ export class WorkspacesController {
   findMyWorkspaces(@CurrentUser() user: AuthenticatedUser) {
     return this.workspacesService.findMyWorkspaces(user.id);
   }
-  
+
   @Get(':term')
   findOne(@Param('term') term: string) {
     return this.workspacesService.findOne(term);
