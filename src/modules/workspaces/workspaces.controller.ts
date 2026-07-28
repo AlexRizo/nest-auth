@@ -10,6 +10,7 @@ import { type AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface
 export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
+  // ? get/me va primero que get/:term. Si los inviertes, todo cae a get/:term;
   @Get('/me')
   findMyWorkspaces(@CurrentUser() user: AuthenticatedUser) {
     return this.workspacesService.findMyWorkspaces(user.id);
