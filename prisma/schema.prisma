@@ -37,6 +37,9 @@ model User {
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
 
+  favoriteWorkspaceId String?
+  favoriteWorkspace   Workspace? @relation(fields: [favoriteWorkspaceId], references: [id], onDelete: SetNull)
+
   authProvider AuthProviderEnum @default(LOCAL)
 
   sessions     Session[]
@@ -92,6 +95,7 @@ model Workspace {
 
   workspaceGrants AccessGrant[]
   spaces          Space[]
+  users           User[]
 }
 
 model Space {
