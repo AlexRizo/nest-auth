@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto';
 import { AUTH_COOKIES } from './helpers/cookies';
 import { REDIS } from './helpers/redis';
 import { GoogleProfilePayload } from './interfaces/google-profile-payload.interface';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 @Injectable()
 export class AuthService {
@@ -24,8 +25,9 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-    private readonly jwt: JwtService,
-    private readonly sessions: SessionService,
+    private readonly jwtService: JwtService,
+    private readonly sessionsService: SessionService,
+    private readonly workspacesService: WorkspacesService,
     @Inject(REDIS.REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -84,10 +86,13 @@ export class AuthService {
   }
 
   async establishSession(user: User, req: Request, res: Response) {
-    const { cookieValue, session } = await this.sessions.create(user.id, {
-      userAgent: req.headers['user-agent'],
-      ipAddress: req.ip,
-    });
+    const { cookieValue, session } = await this.sessionsService.create(
+      user.id,
+      {
+        userAgent: req.headers['user-agent'],
+        ipAddress: req.ip,
+      },
+    );
 
     const accessToken = await this.signAccessToken({
       sub: user.id,
@@ -123,7 +128,7 @@ export class AuthService {
 
   async logout(sessionId: string, jti: string, res: Response) {
     if (sessionId !== 'pre2fa') {
-      await this.sessions.revoke(sessionId);
+      await this.sessionsService.revoke(sessionId);
     }
 
     await this.redis.set(
@@ -191,7 +196,7 @@ export class AuthService {
   // ? Helpers
 
   private signAccessToken(payload: Omit<AccessTokenPayload, 'jti'>) {
-    return this.jwt.signAsync(
+    return this.jwtService.signAsync(
       { ...payload, jti: randomUUID() },
       {
         expiresIn: payload.pre2fa ? this.pre2faTtlSec : this.accessTtlSec,
@@ -209,7 +214,7 @@ export class AuthService {
     if (!cookieValue) throw new UnauthorizedException('Sin refresh token');
 
     const { cookieValue: rotated, session } =
-      await this.sessions.rotate(cookieValue);
+      await this.sessionsService.rotate(cookieValue);
 
     const user = await this.usersService.findOne(session.userId);
 
@@ -235,6 +240,18 @@ export class AuthService {
     );
 
     return { user: this.toPublicUser(user) };
+  }
+
+  // ? Método para actualizar el espacio de trabajo favorito
+
+  async setFavoriteWorkspace(userId: string, workspaceCode: string) {
+    const { id } = await this.workspacesService.findOne(workspaceCode);
+
+    await this.usersService.update(userId, {
+      favoriteWorkspaceId: id,
+    });
+
+    return { ok: true };
   }
 
   private setCookie(

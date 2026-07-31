@@ -14,11 +14,13 @@ import { TwoFactorService } from './two-factor.service';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
     PrismaModule,
     UsersModule,
+    WorkspacesModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({

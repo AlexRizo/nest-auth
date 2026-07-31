@@ -11,6 +11,7 @@ import {
   Delete,
   Param,
   ParseUUIDPipe,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -135,6 +136,14 @@ export class AuthController {
   async me(@CurrentUser() user: AuthenticatedUser) {
     const full = await this.userService.findOne(user.id);
     return this.authService.toPublicUser(full);
+  }
+
+  @Patch('me/favorite-workspace')
+  async setFavoriteWorkspace(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: { workspaceCode: string },
+  ) {
+    return this.authService.setFavoriteWorkspace(user.id, dto.workspaceCode);
   }
 
   @Get('sessions')

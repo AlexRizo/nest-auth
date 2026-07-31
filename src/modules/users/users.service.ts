@@ -69,7 +69,18 @@ export class UsersService {
         ? { email: term }
         : { username: term };
 
-    return await this.prisma.user.findUnique({ where });
+    return await this.prisma.user.findUnique({
+      where,
+      include: {
+        favoriteWorkspace: {
+          select: {
+            code: true,
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 
   async update(
