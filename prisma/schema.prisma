@@ -44,6 +44,9 @@ model User {
 
   sessions     Session[]
   accessGrants AccessGrant[]
+
+  authoredTasks Task[] @relation("TaskAuthor")
+  assignedTasks Task[] @relation("TaskAssignees")
 }
 
 enum AuthProviderEnum {
@@ -110,6 +113,7 @@ model Space {
   createdAt DateTime @default(now())
 
   spaceGrants AccessGrant[]
+  tasks       Task[]
 }
 
 model AccessGrant {
@@ -130,4 +134,337 @@ model AccessGrant {
 
   @@unique([userId, workspaceId])
   @@unique([userId, spaceId])
+}
+
+enum TaskTypeEnum {
+  DESIGN
+  VIDEO
+  EVENT
+  POST
+}
+
+enum TaskPriorityEnum {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskStatusEnum {
+  PENDING
+  IN_ATTENTION
+  IN_PROGRESS
+  FOR_REVIEW
+  DONE
+}
+
+// Modelo base compartido por los 4 tipos de tarea. Cada tipo agrega sus
+// propios campos en una tabla relacionada 1:1.
+model Task {
+  id          String           @id @default(uuid())
+  title       String
+  description String?
+  type        TaskTypeEnum
+  priority    TaskPriorityEnum @default(NORMAL)
+  status      TaskStatusEnum   @default(PENDING)
+
+  authorId String
+  author   User   @relation("TaskAuthor", fields: [authorId], references: [id])
+
+  assignees User[] @relation("TaskAssignees")
+
+  spaceId String
+  space   Space  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  dueDate   DateTime?
+
+  eventDetails  EventTask?
+  designDetails DesignTask?
+  postDetails   PostTask?   @relation("PostTaskDetails")
+  referencedBy  PostTask[]  @relation("PostReference")
+  videoDetails  VideoTask?
+
+  @@index([spaceId])
+  @@index([authorId])
+}
+
+enum EventStatusEnum {
+  PENDING
+  SCHEDULED
+  ATTENDING
+  FINISHED
+}
+
+enum EventRequirementEnum {
+  PHOTOGRAPHY
+  VIDEO
+  REEL
+  OTHER
+}
+
+// Campos propios de las tareas tipo EVENT. `Task.dueDate` se usa como fecha y
+// hora de finalización del evento; aquí solo se agrega el inicio.
+model EventTask {
+  taskId String @id
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  place     String
+  address   String
+  organizer String
+
+  startDate DateTime
+  status    EventStatusEnum @default(PENDING)
+
+  requirements EventRequirementEnum[]
+}
+
+enum DesignTypeEnum {
+  DIGITAL
+  PRINTED
+  VINYL
+  SHIRT
+  OTHER
+}
+
+enum DesignOrientationEnum {
+  HORIZONTAL
+  VERTICAL
+}
+
+// Detalle del diseño: SOCIAL_MEDIA/INSTITUTIONAL_ADVERTISING/BROCHURE son
+// propios de DIGITAL; POSTER/FLYER/PRESENTATION_CARD/TRIFOLD son compartidos
+// por PRINTED y VINYL. No aplica para SHIRT ni OTHER.
+enum DesignDetailEnum {
+  SOCIAL_MEDIA
+  INSTITUTIONAL_ADVERTISING
+  BROCHURE
+  POSTER
+  FLYER
+  PRESENTATION_CARD
+  TRIFOLD
+}
+
+enum ShirtPrintTypeEnum {
+  FLAT_INKS
+  SUBLIMATION
+}
+
+// Campos propios de las tareas tipo DESIGN. `orientation` no aplica para
+// SHIRT/OTHER, `detail` no aplica para SHIRT/OTHER, `printType`/`inkCount`
+// solo aplican para SHIRT (`inkCount` solo si printType = FLAT_INKS).
+model DesignTask {
+  taskId String @id
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  designType  DesignTypeEnum
+  orientation DesignOrientationEnum?
+  detail      DesignDetailEnum?
+  size        String?
+
+  printType ShirtPrintTypeEnum?
+  inkCount  Int?
+}
+
+enum SocialNetworkEnum {
+  INSTAGRAM
+  FACEBOOK
+  YOUTUBE
+}
+
+// Campos propios de las tareas tipo POST. `referenceTask` apunta a la tarea
+// de VIDEO o DESIGN cuyo resultado se va a publicar; se valida en
+// aplicación, no en el schema.
+model PostTask {
+  taskId String @id
+  task   Task   @relation("PostTaskDetails", fields: [taskId], references: [id], onDelete: Cascade)
+
+  postTitle String
+  content   String
+
+  socialNetworks SocialNetworkEnum[]
+
+  referenceTaskId String?
+  referenceTask   Task?   @relation("PostReference", fields: [referenceTaskId], references: [id], onDelete: SetNull)
+}
+
+enum VideoTypeEnum {
+  REEL_G1
+  REEL_M1
+  REEL_G2
+  VIDEO_N3
+  VIDEO_N4
+}
+
+// Modelo base de las tareas tipo VIDEO. `videoType` decide cuál de las 5
+// subtablas (g1/m1/g2/n3/n4) tiene los datos; cada subtipo tiene una forma
+// de datos genuinamente distinta (guion único, escenas libres, escenas
+// fijas, escenas manuales, o sin escenas), por eso no comparten una sola
+// tabla como sí hacen DesignTask/EventTask/PostTask.
+model VideoTask {
+  taskId    String        @id
+  task      Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  videoType VideoTypeEnum
+
+  g1 VideoTaskG1?
+  m1 VideoTaskM1?
+  g2 VideoTaskG2?
+  n3 VideoTaskN3?
+  n4 VideoTaskN4?
+}
+
+enum VideoAttachmentTypeEnum {
+  IMAGE
+  VIDEO
+}
+
+// Adjuntos compartidos por los 5 subtipos/escenas de video. Solo uno de los
+// FK debe estar lleno por registro; Prisma no puede forzar esa exclusividad
+// a nivel de schema, se valida al crear el adjunto en el backend.
+model VideoAttachment {
+  id   String                  @id @default(uuid())
+  url  String
+  type VideoAttachmentTypeEnum
+
+  videoTaskG1Id String?
+  videoTaskG1   VideoTaskG1? @relation(fields: [videoTaskG1Id], references: [videoTaskId], onDelete: Cascade)
+
+  videoSceneM1Id String?
+  videoSceneM1   VideoSceneM1? @relation(fields: [videoSceneM1Id], references: [id], onDelete: Cascade)
+
+  videoSceneG2Id String?
+  videoSceneG2   VideoSceneG2? @relation(fields: [videoSceneG2Id], references: [id], onDelete: Cascade)
+
+  videoSceneN3Id String?
+  videoSceneN3   VideoSceneN3? @relation(fields: [videoSceneN3Id], references: [id], onDelete: Cascade)
+
+  videoTaskN4Id String?
+  videoTaskN4   VideoTaskN4? @relation(fields: [videoTaskN4Id], references: [videoTaskId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// Reel G1: guión único generado por IA a partir de `promptAnswers`
+// (actividad, lugar, participantes, materia). Esas respuestas no se
+// exponen como columnas propias, solo se conservan para poder regenerar
+// o auditar el guion.
+model VideoTaskG1 {
+  videoTaskId String    @id
+  videoTask   VideoTask @relation(fields: [videoTaskId], references: [taskId], onDelete: Cascade)
+
+  promptAnswers Json
+  script        String?
+
+  attachments VideoAttachment[]
+}
+
+// Reel M1: escenas libres (máx. 5, validado en app), cada una con su propio
+// prompt, guion generado y archivos.
+model VideoTaskM1 {
+  videoTaskId String    @id
+  videoTask   VideoTask @relation(fields: [videoTaskId], references: [taskId], onDelete: Cascade)
+
+  place        String
+  participants String
+  subject      String
+
+  scenes VideoSceneM1[]
+}
+
+model VideoSceneM1 {
+  id            String      @id @default(uuid())
+  videoTaskM1Id String
+  videoTaskM1   VideoTaskM1 @relation(fields: [videoTaskM1Id], references: [videoTaskId], onDelete: Cascade)
+
+  sceneOrder Int
+  prompt     String
+  script     String?
+
+  attachments VideoAttachment[]
+
+  @@unique([videoTaskM1Id, sceneOrder])
+}
+
+enum VideoSceneG2KindEnum {
+  INTRODUCTION
+  PARTICIPANTS
+  METHODOLOGY
+  RESULTS
+  EXPERIENCES
+  CLOSING
+}
+
+// Reel G2: 6 escenas fijas (difusión de proyectos académicos), sin campos de
+// prompt comunes; cada escena genera su guion a partir de `activity`.
+model VideoTaskG2 {
+  videoTaskId String    @id
+  videoTask   VideoTask @relation(fields: [videoTaskId], references: [taskId], onDelete: Cascade)
+
+  scenes VideoSceneG2[]
+}
+
+model VideoSceneG2 {
+  id            String      @id @default(uuid())
+  videoTaskG2Id String
+  videoTaskG2   VideoTaskG2 @relation(fields: [videoTaskG2Id], references: [videoTaskId], onDelete: Cascade)
+
+  kind     VideoSceneG2KindEnum
+  activity String
+  script   String?
+
+  attachments VideoAttachment[]
+
+  @@unique([videoTaskG2Id, kind])
+}
+
+// Video N3: escenas libres e ilimitadas con guion escrito a mano (sin IA).
+model VideoTaskN3 {
+  videoTaskId String    @id
+  videoTask   VideoTask @relation(fields: [videoTaskId], references: [taskId], onDelete: Cascade)
+
+  scenes VideoSceneN3[]
+}
+
+model VideoSceneN3 {
+  id            String      @id @default(uuid())
+  videoTaskN3Id String
+  videoTaskN3   VideoTaskN3 @relation(fields: [videoTaskN3Id], references: [videoTaskId], onDelete: Cascade)
+
+  sceneOrder Int
+  script     String
+
+  attachments VideoAttachment[]
+
+  @@unique([videoTaskN3Id, sceneOrder])
+}
+
+enum VideoN4FocusEnum {
+  PROMOTION
+  SOCIAL_MEDIA
+  INTERNAL_PROJECT
+  OTHER
+}
+
+enum VideoSizePresetEnum {
+  REEL_VERTICAL
+  FEED_HORIZONTAL
+  FHD_HORIZONTAL
+}
+
+// Video N4: sin escenas. El tamaño es un preset estándar o medidas
+// personalizadas en píxeles; ambos quedan nullable porque son excluyentes
+// entre sí (se valida en el backend).
+model VideoTaskN4 {
+  videoTaskId String    @id
+  videoTask   VideoTask @relation(fields: [videoTaskId], references: [taskId], onDelete: Cascade)
+
+  idea  String
+  focus VideoN4FocusEnum
+
+  sizePreset   VideoSizePresetEnum?
+  customWidth  Int?
+  customHeight Int?
+
+  attachments VideoAttachment[]
 }
