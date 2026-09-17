@@ -23,6 +23,17 @@ import { EventTaskService } from './services/event-task.service';
 import { PostTaskService } from './services/post-task.service';
 import { VideoTaskService } from './services/video-task.service';
 
+// Datos mínimos de autor/asignados/space que necesita cualquier listado de
+// tareas (kanban de Space y de Workspace) para pintar avatares y el badge
+// de Space sin traer los objetos User/Space completos.
+const TASK_LIST_INCLUDE = {
+  author: { select: { id: true, name: true, username: true, avatar: true } },
+  assignees: {
+    select: { id: true, name: true, username: true, avatar: true },
+  },
+  space: { select: { id: true, name: true, code: true, color: true } },
+} satisfies Prisma.TaskInclude;
+
 @Injectable()
 export class TasksService {
   constructor(
@@ -96,6 +107,19 @@ export class TasksService {
       where: { spaceId, ...this.visibilityFilter(user) },
       orderBy: { createdAt: 'desc' },
       take,
+      include: TASK_LIST_INCLUDE,
+    });
+  }
+
+  // Vista general de Workspace (fuera de un Space): tareas de todos los
+  // Spaces disponibles para el usuario. Ver CLAUDE.md > Permisos sobre
+  // Tareas.
+  findAllForWorkspace(workspaceId: string, user: AuthenticatedUser, take = 25) {
+    return this.prisma.task.findMany({
+      where: { space: { workspaceId }, ...this.visibilityFilter(user) },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: TASK_LIST_INCLUDE,
     });
   }
 
