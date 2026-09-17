@@ -176,9 +176,9 @@ model Task {
   spaceId String
   space   Space  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  dueDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dueDate   DateTime
 
   eventDetails  EventTask?
   designDetails DesignTask?

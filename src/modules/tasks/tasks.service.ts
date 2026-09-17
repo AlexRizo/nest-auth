@@ -26,12 +26,18 @@ import { VideoTaskService } from './services/video-task.service';
 // Datos mínimos de autor/asignados/space que necesita cualquier listado de
 // tareas (kanban de Space y de Workspace) para pintar avatares y el badge
 // de Space sin traer los objetos User/Space completos.
+// `eventDetails` solo aplica a type=EVENT (null en el resto); se incluye
+// siempre para no tener que armar un include distinto para el calendario
+// de /eventos.
 const TASK_LIST_INCLUDE = {
   author: { select: { id: true, name: true, username: true, avatar: true } },
   assignees: {
     select: { id: true, name: true, username: true, avatar: true },
   },
   space: { select: { id: true, name: true, code: true, color: true } },
+  eventDetails: {
+    select: { startDate: true, place: true, status: true },
+  },
 } satisfies Prisma.TaskInclude;
 
 @Injectable()
@@ -102,9 +108,14 @@ export class TasksService {
     );
   }
 
-  findAllForSpace(spaceId: string, user: AuthenticatedUser, take = 25) {
+  findAllForSpace(
+    spaceId: string,
+    user: AuthenticatedUser,
+    take = 25,
+    type?: TaskTypeEnum,
+  ) {
     return this.prisma.task.findMany({
-      where: { spaceId, ...this.visibilityFilter(user) },
+      where: { spaceId, type, ...this.visibilityFilter(user) },
       orderBy: { createdAt: 'desc' },
       take,
       include: TASK_LIST_INCLUDE,
@@ -114,9 +125,24 @@ export class TasksService {
   // Vista general de Workspace (fuera de un Space): tareas de todos los
   // Spaces disponibles para el usuario. Ver CLAUDE.md > Permisos sobre
   // Tareas.
-  findAllForWorkspace(workspaceId: string, user: AuthenticatedUser, take = 25) {
+  // `mine` fuerza el filtro "creadas por mí o asignadas a mí" sin importar
+  // el rol (para la vista "Mis Tareas" — ahí ni siquiera ADMIN/CLIENT_ADMIN
+  // quieren ver todo el Workspace).
+  // `type` filtra por tipo de tarea (ej. EVENT para el calendario de
+  // /eventos, que vive separado del kanban).
+  findAllForWorkspace(
+    workspaceId: string,
+    user: AuthenticatedUser,
+    take = 25,
+    mine = false,
+    type?: TaskTypeEnum,
+  ) {
     return this.prisma.task.findMany({
-      where: { space: { workspaceId }, ...this.visibilityFilter(user) },
+      where: {
+        space: { workspaceId },
+        type,
+        ...(mine ? this.mineFilter(user) : this.visibilityFilter(user)),
+      },
       orderBy: { createdAt: 'desc' },
       take,
       include: TASK_LIST_INCLUDE,
@@ -209,12 +235,16 @@ export class TasksService {
       user.role === UserRoleEnum.STAFF ||
       user.role === UserRoleEnum.CLIENT_STAFF
     ) {
-      return {
-        OR: [{ authorId: user.id }, { assignees: { some: { id: user.id } } }],
-      };
+      return this.mineFilter(user);
     }
 
     return {};
+  }
+
+  private mineFilter(user: AuthenticatedUser): Prisma.TaskWhereInput {
+    return {
+      OR: [{ authorId: user.id }, { assignees: { some: { id: user.id } } }],
+    };
   }
 
   // Editar/Eliminar: solo ADMIN, CLIENT_ADMIN o el creador de la tarea.

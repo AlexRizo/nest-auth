@@ -2,11 +2,13 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  ParseBoolPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { type Workspace } from '@prisma/client';
+import { TaskTypeEnum, type Workspace } from '@prisma/client';
 import { TasksService } from './tasks.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentWorkspace } from '../auth/decorators/current-workspace.decorator';
@@ -26,7 +28,16 @@ export class WorkspaceTasksController {
     @CurrentWorkspace() workspace: Workspace,
     @CurrentUser() user: AuthenticatedUser,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
+    @Query('mine', new DefaultValuePipe(false), ParseBoolPipe) mine: boolean,
+    @Query('type', new ParseEnumPipe(TaskTypeEnum, { optional: true }))
+    type?: TaskTypeEnum,
   ) {
-    return this.tasksService.findAllForWorkspace(workspace.id, user, take);
+    return this.tasksService.findAllForWorkspace(
+      workspace.id,
+      user,
+      take,
+      mine,
+      type,
+    );
   }
 }

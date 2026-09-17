@@ -24,10 +24,9 @@ export abstract class CreateTaskBaseDto {
   @IsEnum(TaskPriorityEnum)
   priority?: TaskPriorityEnum;
 
-  @IsOptional()
   @Type(() => Date)
   @IsDate()
-  dueDate?: Date;
+  dueDate: Date;
 
   @IsOptional()
   @IsArray()
