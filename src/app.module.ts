@@ -15,6 +15,7 @@ import { REDIS } from './modules/auth/helpers/redis';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { SpacesModule } from './modules/spaces/spaces.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { AssignmentsModule } from './modules/assignments/assignments.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
     WorkspacesModule,
     SpacesModule,
     TasksModule,
+    AssignmentsModule,
   ],
   providers: [
     // Aplica el rate limiting a toda la app. Se ejecuta también en rutas
