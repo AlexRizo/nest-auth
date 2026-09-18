@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 import session from 'express-session';
+import { RedisIoAdapter } from './modules/realtime/redis-io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('App');
@@ -57,6 +58,10 @@ async function bootstrap() {
       },
     }),
   );
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(envs.PORT);
   logger.log(`Server running on port ${envs.PORT}`);

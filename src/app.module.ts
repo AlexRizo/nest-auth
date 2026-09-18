@@ -16,6 +16,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { SpacesModule } from './modules/spaces/spaces.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
     SpacesModule,
     TasksModule,
     AssignmentsModule,
+    RealtimeModule,
   ],
   providers: [
     // Aplica el rate limiting a toda la app. Se ejecuta también en rutas
