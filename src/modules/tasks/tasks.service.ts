@@ -247,6 +247,44 @@ export class TasksService {
     };
   }
 
+  // Lado inverso de visibilityFilter/mineFilter: dada una tarea, a qué
+  // usuarios hay que notificarle un cambio en tiempo real. Es la misma
+  // regla de "Ver" del esquema de roles, pero calculada hacia atrás:
+  // - authorId y assignees siempre la ven (son quienes tienen mineFilter).
+  // - ADMIN ve todo, sin grant.
+  // - CLIENT_ADMIN y CLIENT ven todo lo del Space al que tengan grant (son
+  //   los únicos roles con vista "Total" que además no caen ya en
+  //   authorId/assignees necesariamente).
+  // STAFF/CLIENT_STAFF NO se agregan aparte: para ellos "Ver" es
+  // exactamente mineFilter, así que ya quedan cubiertos si son autor o
+  // assignee; si no lo son, no deben recibir el evento.
+  async recipientsFor(task: {
+    authorId: string;
+    spaceId: string;
+    assigneeIds: string[];
+  }) {
+    const totalViewers = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          { role: UserRoleEnum.ADMIN },
+          {
+            role: { in: [UserRoleEnum.CLIENT_ADMIN, UserRoleEnum.CLIENT] },
+            accessGrants: { some: { spaceId: task.spaceId } },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return [
+      ...new Set([
+        task.authorId,
+        ...task.assigneeIds,
+        ...totalViewers.map((u) => u.id),
+      ]),
+    ];
+  }
+
   // Editar/Eliminar: solo ADMIN, CLIENT_ADMIN o el creador de la tarea.
   // Estar asignado no da derecho a editar ni eliminar.
   private assertCanMutate(task: { authorId: string }, user: AuthenticatedUser) {

@@ -11,7 +11,7 @@ import { Server } from 'socket.io';
 import { envs } from 'src/config/env';
 import { SpaceAccessService } from '../spaces/space-access.service';
 import { RealtimeAuthService } from './realtime-auth.service';
-import { spaceRoom } from './realtime.rooms';
+import { spaceRoom, userRoom } from './realtime.rooms';
 import type { AppSocket } from './realtime.types';
 
 interface SpaceRoomPayload {
@@ -46,6 +46,10 @@ export class RealtimeGateway implements OnGatewayConnection {
         client.handshake.headers.cookie,
       );
       client.data.user = user;
+      // Sala personal: no depende de en qué workspace/space esté parado el
+      // usuario, así que se une sola al autenticar (a diferencia de las
+      // salas de space, que el cliente pide explícitamente con space:join).
+      await client.join(userRoom(user.id));
     } catch (error) {
       this.logger.debug(`Conexión rechazada: ${(error as Error).message}`);
       client.emit('auth:error', 'No autorizado');
