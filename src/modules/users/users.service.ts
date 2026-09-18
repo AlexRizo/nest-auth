@@ -51,7 +51,25 @@ export class UsersService {
   }
 
   async findAll() {
-    return await this.prisma.user.findMany();
+    return await this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        avatar: true,
+        twoFactorEnabled: true,
+        emailVerified: true,
+        status: true,
+        role: true,
+        fullAccess: true,
+        authProvider: true,
+        createdAt: true,
+        updatedAt: true,
+        lastLoginAt: true,
+        favoriteWorkspaceId: true,
+      },
+    });
   }
 
   async findOne(term: string) {
