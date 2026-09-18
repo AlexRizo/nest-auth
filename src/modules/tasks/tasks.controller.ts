@@ -21,6 +21,7 @@ import { UpdateDesignTaskDto } from './dto/update-design-task.dto';
 import { UpdateEventTaskDto } from './dto/update-event-task.dto';
 import { UpdatePostTaskDto } from './dto/update-post-task.dto';
 import { UpdateVideoTaskDto } from './dto/update-video-task.dto';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentSpace } from '../auth/decorators/current-space.decorator';
@@ -133,6 +134,18 @@ export class TasksController {
     @Body() dto: UpdateVideoTaskDto,
   ) {
     return this.tasksService.updateVideoTask(taskId, user, dto);
+  }
+
+  // A diferencia de los updateXxx de arriba, aquí sí puede el assignee (no
+  // solo el creador): ver TasksService.assertCanChangeStatus.
+  @Roles('ADMIN', 'STAFF', 'CLIENT_ADMIN', 'CLIENT_STAFF')
+  @Patch(':taskId/status')
+  updateStatus(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateTaskStatusDto,
+  ) {
+    return this.tasksService.updateStatus(taskId, user, dto.status);
   }
 
   @Roles('ADMIN', 'STAFF', 'CLIENT_ADMIN', 'CLIENT_STAFF')

@@ -6,8 +6,18 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TaskTypeEnum, UserRoleEnum } from '@prisma/client';
+import {
+  Prisma,
+  TaskStatusEnum,
+  TaskTypeEnum,
+  UserRoleEnum,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import {
+  REALTIME_EVENTS,
+  TaskStatusUpdatedPayload,
+} from '../realtime/realtime.events';
 import { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 import { CreateTaskBaseDto } from './dto/create-task-base.dto';
 import { CreateDesignTaskDto } from './dto/create-design-task.dto';
@@ -48,6 +58,7 @@ export class TasksService {
     private readonly eventTaskService: EventTaskService,
     private readonly postTaskService: PostTaskService,
     private readonly videoTaskService: VideoTaskService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   private readonly logger = new Logger(TasksService.name);
@@ -173,6 +184,75 @@ export class TasksService {
     if (!task) throw new NotFoundException('Tarea no encontrada');
 
     return task;
+  }
+
+  // Mover una tarea entre columnas del kanban es "interactuar con ella"
+  // (como comentar o adjuntar archivos), no "editar sus datos": por eso el
+  // assignee sí puede, a diferencia de assertCanMutate (creador/privilegiado
+  // únicamente). Ver notas de negocio del esquema de roles.
+  async updateStatus(
+    taskId: string,
+    user: AuthenticatedUser,
+    status: TaskStatusEnum,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        authorId: true,
+        spaceId: true,
+        assignees: { select: { id: true } },
+      },
+    });
+
+    if (!task) throw new NotFoundException('Tarea no encontrada');
+
+    this.assertCanChangeStatus(task, user);
+
+    const updated = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { status },
+    });
+
+    const recipientIds = await this.recipientsFor({
+      authorId: task.authorId,
+      spaceId: task.spaceId,
+      assigneeIds: task.assignees.map((a) => a.id),
+    });
+
+    const payload: TaskStatusUpdatedPayload = {
+      taskId: updated.id,
+      spaceId: task.spaceId,
+      status: updated.status,
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+
+    for (const recipientId of recipientIds) {
+      this.realtime.emitToUser(
+        recipientId,
+        REALTIME_EVENTS.TASK_STATUS_UPDATED,
+        payload,
+      );
+    }
+
+    return updated;
+  }
+
+  private assertCanChangeStatus(
+    task: { authorId: string; assignees: { id: string }[] },
+    user: AuthenticatedUser,
+  ) {
+    const isPrivileged =
+      user.role === UserRoleEnum.ADMIN ||
+      user.role === UserRoleEnum.CLIENT_ADMIN;
+    const isAuthor = task.authorId === user.id;
+    const isAssignee = task.assignees.some((a) => a.id === user.id);
+
+    if (!isPrivileged && !isAuthor && !isAssignee) {
+      throw new ForbiddenException(
+        'No tienes permiso para cambiar el status de esta tarea',
+      );
+    }
   }
 
   async remove(taskId: string, user: AuthenticatedUser) {
